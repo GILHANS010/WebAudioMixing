@@ -1,6 +1,5 @@
 const audio = document.getElementById('audio');
 const processButton = document.getElementById('process');
-const playButton = document.getElementById('play');
 const downloadButton = document.getElementById('download');
 const fileInput = document.getElementById('file');
 const compressorSelect = document.getElementById('compressor');
@@ -129,13 +128,11 @@ async function processAudio() {
   // Start processing
   source.start(0);
 
-
   // Render the audio, including the reverb tail
   audioBuffer = await offlineContext.startRendering();
   // Convert the processed buffer to a WAV Blob and set it as the source for the audio element
   const processedBlob = encodeWAV(audioBuffer);
   audio.src = URL.createObjectURL(processedBlob);
-  playButton.disabled = false;
   downloadButton.disabled = false;
 }
 
@@ -154,15 +151,6 @@ function adjustCompressorSettings(compressor) {
     compressor.release.setValueAtTime(0.25, audioContext.currentTime);
   }
 }
-
-
-playButton.addEventListener('click', () => {
-  if (!audio.paused) {
-    audio.pause();
-  } else {
-    audio.play();
-  }
-});
 
 function encodeWAV(audioBuffer) {
   const numChannels = audioBuffer.numberOfChannels;
