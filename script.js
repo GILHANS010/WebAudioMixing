@@ -83,10 +83,13 @@ async function processAudio() {
   adjustCompressorSettings(compressor);
 
   // Reverb
+  let reverbEnabled = reverbSelect.value !== 'none';
   const convolver = offlineContext.createConvolver();
-  const reverbResponse = await fetch(`./ir/${reverbSelect.value}.wav`);
-  const reverbArrayBuffer = await reverbResponse.arrayBuffer();
-  convolver.buffer = await offlineContext.decodeAudioData(reverbArrayBuffer);
+  if (reverbEnabled) {
+    const reverbResponse = await fetch(`./ir/${reverbSelect.value}.wav`);
+    const reverbArrayBuffer = await reverbResponse.arrayBuffer();
+    convolver.buffer = await offlineContext.decodeAudioData(reverbArrayBuffer);
+  }
 
   // Limiter configuration
   const limiter = offlineContext.createDynamicsCompressor();
@@ -108,18 +111,24 @@ async function processAudio() {
 
   // Split signal into dry and wet paths after compression
   compressor.connect(dryGain);
-  compressor.connect(wetGain);
 
-  wetGain.connect(convolver); // Apply reverb only on the wet path
+  if (reverbEnabled) {
+    // If reverb is enabled, connect the wet signal through the convolver to the limiter
+    compressor.connect(wetGain).connect(convolver).connect(limiter);
+    // Ensure the dry signal also connects to the limiter to combine with the wet signal
+    dryGain.connect(limiter);
+  } else {
+    // If no reverb, bypass the convolver. 
+    // Wet gain isn't used here, but we still need to connect the dry signal to the limiter.
+    dryGain.connect(limiter);
+  }
 
-  // Combine signals back, then pass through the limiter
-  dryGain.connect(limiter);
-  convolver.connect(limiter);
-
+  // Finally, connect the limiter to the destination
   limiter.connect(offlineContext.destination);
 
   // Start processing
   source.start(0);
+
 
   // Render the audio, including the reverb tail
   audioBuffer = await offlineContext.startRendering();
