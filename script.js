@@ -22,8 +22,7 @@ async function processAudio() {
   const arrayBuffer = await file.arrayBuffer();
   audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-  // Calculate extra time for the reverb tail. Here, we add 3 seconds.
-  // You might need to adjust this based on your reverb settings and personal preference.
+  // Calculate extra time for the reverb tail.
   const extraTime = 3; // seconds
   const extendedLength = audioBuffer.length + audioBuffer.sampleRate * extraTime;
 
@@ -40,13 +39,13 @@ async function processAudio() {
 
   // Create a gain node for the overall signal
   const overallGain = offlineContext.createGain();
-  overallGain.gain.value = 1.0; // Default gain to 1
+  overallGain.gain.value = 0.95; // Default gain to 0.95 for headroom
 
   // Create gain nodes for dry and wet signals
   const dryGain = offlineContext.createGain();
   const wetGain = offlineContext.createGain();
 
-  // Set gains for 50% wet, 50% dry
+  // Set gains for 70% dry, 50% wet
   dryGain.gain.value = 0.7;
   wetGain.gain.value = 0.3;
 
@@ -91,14 +90,13 @@ async function processAudio() {
 
   // Limiter configuration
   const limiter = offlineContext.createDynamicsCompressor();
-  limiter.threshold.setValueAtTime(-1, offlineContext.currentTime); // -1 dB for a little headroom
-  limiter.knee.setValueAtTime(0, offlineContext.currentTime); // Hard knee
-  limiter.ratio.setValueAtTime(20, offlineContext.currentTime); // High ratio for limiting
-  limiter.attack.setValueAtTime(0, offlineContext.currentTime); // Immediate attack
-  limiter.release.setValueAtTime(0.1, offlineContext.currentTime); // Fast release
+  limiter.threshold.setValueAtTime(-3, offlineContext.currentTime); // Threshold (-2 dB for a little headroom)
+  limiter.knee.setValueAtTime(0, offlineContext.currentTime); // Knee (Hard knee)
+  limiter.ratio.setValueAtTime(20, offlineContext.currentTime); // Ratio (High ratio for limiting)
+  limiter.attack.setValueAtTime(0, offlineContext.currentTime); // Attack Time (Immediate attack)
+  limiter.release.setValueAtTime(0.1, offlineContext.currentTime); // Release Time (Fast release)
 
   // Connect the nodes for processing
-
   source.connect(overallGain);
 
   if (eq) {
@@ -124,7 +122,7 @@ async function processAudio() {
   source.start(0);
 
   // Render the audio, including the reverb tail
-  audioBuffer = await offlineContext.startRendering(); // This is the processed buffer
+  audioBuffer = await offlineContext.startRendering();
   // Convert the processed buffer to a WAV Blob and set it as the source for the audio element
   const processedBlob = encodeWAV(audioBuffer);
   audio.src = URL.createObjectURL(processedBlob);
@@ -161,7 +159,7 @@ function encodeWAV(audioBuffer) {
   const numChannels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
   const length = audioBuffer.length;
-  const bitsPerSample = 16; // Assuming 16-bit audio
+  const bitsPerSample = 16;
 
   // WAV header structure (44 bytes)
   const header = new ArrayBuffer(44);
@@ -187,7 +185,7 @@ function encodeWAV(audioBuffer) {
   for (let i = 0; i < length; i++) {
     for (let channel = 0; channel < numChannels; channel++) {
       const sample = audioBuffer.getChannelData(channel)[i];
-      dataView.setInt16(i * numChannels * 2 + channel * 2, sample * 0x7FFF, true); // Normalize to 16-bit range
+      dataView.setInt16(i * numChannels * 2 + channel * 2, sample * 0x7FFF, true);
     }
   }
 
@@ -211,7 +209,7 @@ downloadButton.addEventListener('click', () => {
     return;
   }
 
-  const wavData = encodeWAV(audioBuffer); // Assume this function encodes the audio buffer to WAV
+  const wavData = encodeWAV(audioBuffer);
   const blob = new Blob([wavData], {
     type: 'audio/wav'
   });
