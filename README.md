@@ -13,6 +13,9 @@ This project is a web-based audio processing application that allows users to up
 - **Dry/Wet Mix**: Control the balance between the original (dry) and processed (wet) signals.
 - **Download**: Users can download the processed audio file.
 
+## Demo
+- https://gilhans010.github.io/WebAudioMixing/
+
 ## How to Use
 
 1. **Open the Application**: Load the application in a web browser.
