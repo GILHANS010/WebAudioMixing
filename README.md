@@ -14,7 +14,7 @@ This project is a web-based audio processing application that allows users to up
 - **Download**: Users can download the processed audio file.
 
 ## Demo
-- https://gilhans010.github.io/WebAudioMixing/
+- https://webaudiomixer.netlify.app/
 
 ## How to Use
 
