@@ -65,3 +65,7 @@ input[type="file"] {
 #audio {
     width: 97.5%;
 }
+
+.video-result {
+    margin-top: 20px;
+}

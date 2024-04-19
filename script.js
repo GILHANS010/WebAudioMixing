@@ -4,9 +4,82 @@ const downloadButton = document.getElementById('download');
 const fileInput = document.getElementById('file');
 const compressorSelect = document.getElementById('compressor');
 const reverbSelect = document.getElementById('reverb');
+const video = document.getElementById('video');
+const videoFileInput = document.getElementById('videoFile');
 
 let audioContext;
 let audioBuffer;
+let mediaRecorder;
+
+function startRecording(stream) {
+  mediaRecorder = new MediaRecorder(stream);
+
+  const chunks = [];
+
+  mediaRecorder.ondataavailable = event => {
+    chunks.push(event.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, {
+      type: mediaRecorder.mimeType
+    });
+    const url = URL.createObjectURL(blob);
+
+    // Set video source to the recorded blob
+    video.src = url;
+
+    // Enable download button
+    downloadButton.href = url;
+    downloadButton.download = 'combined_audio_video.mp4';
+    downloadButton.style.display = 'block';
+  };
+
+  mediaRecorder.start();
+}
+
+
+async function combineAudioAndVideo(audioBuffer, videoFile) {
+  // Initialize video context
+  const videoContext = new (window.AudioContext || window.webkitAudioContext)();
+
+  const videoBlob = await videoFile.arrayBuffer();
+  const videoBuffer = await videoContext.decodeAudioData(videoBlob);
+
+  // If audio and video durations do not match, adjust the durations to the shorter one
+  const duration = Math.min(audioBuffer.duration, videoBuffer.duration);
+
+  // Create a new video context
+  const audioSource = videoContext.createBufferSource();
+  audioSource.buffer = audioBuffer;
+
+  // Create a media element source for video
+  const videoElement = document.createElement('video');
+  videoElement.src = URL.createObjectURL(videoFile);
+
+  const videoElementSource = videoContext.createMediaElementSource(videoElement);
+
+  // Create a new media stream destination
+  const mediaStreamDestination = videoContext.createMediaStreamDestination();
+
+  // Connect the sources to the destination
+  audioSource.connect(mediaStreamDestination);
+  videoElementSource.connect(mediaStreamDestination);
+
+  // Start recording the combined audio and video
+  startRecording(mediaStreamDestination.stream);
+
+  // Wait for the video metadata to load and audio to decode
+  videoElement.onloadedmetadata = () => {
+    // Start playing the video
+    video.play();
+  };
+
+  // Set video source to the video element
+  video.src = videoElement.src;
+}
+
+
 
 async function processAudio() {
   if (!audioContext) {
@@ -102,10 +175,10 @@ async function processAudio() {
   source.connect(overallGain);
 
   if (eq) {
-      overallGain.connect(eq);
-      eq.connect(compressor);
+    overallGain.connect(eq);
+    eq.connect(compressor);
   } else {
-      overallGain.connect(compressor);
+    overallGain.connect(compressor);
   }
 
   // Split signal into dry and wet paths after compression
@@ -134,6 +207,14 @@ async function processAudio() {
   const processedBlob = encodeWAV(audioBuffer);
   audio.src = URL.createObjectURL(processedBlob);
   downloadButton.disabled = false;
+
+  const videoFile = videoFileInput.files[0];
+  if (!videoFile) {
+    return alert('Please upload a video file');
+  }
+
+  // Combine audio and video
+  await combineAudioAndVideo(audioBuffer, videoFile);
 }
 
 function adjustCompressorSettings(compressor) {
@@ -200,11 +281,19 @@ function writeString(view, offset, string) {
 
 
 
+
 downloadButton.addEventListener('click', () => {
   if (!audioBuffer) {
     console.error('No audio buffer to download');
     return;
   }
+
+  if (!mediaRecorder) {
+    console.error('No media recorder available');
+    return;
+  }
+
+  mediaRecorder.stop();
 
   const wavData = encodeWAV(audioBuffer);
   const blob = new Blob([wavData], {

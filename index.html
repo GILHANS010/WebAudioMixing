@@ -9,6 +9,8 @@
 <body>
     <h1>Web Audio Mixing</h1>
     <div class="controls">
+        <label for="videoFile">Upload video file:</label>
+        <input type="file" id="videoFile" accept="video/*">
         <label for="file">Upload audio file:</label>
         <input type="file" id="file" accept="audio/*">
         <label for="compressor">Compressor:</label>
@@ -36,8 +38,10 @@
     <div class="audio-result">
         <audio id="audio" controls></audio>
         <!-- <button id="play">Play</button> -->
-        <button id="download">Download</button>
+        <button id="download" style="display: none;">Download</button>
     </div>
+
+    <video id="video" controls></video>
 
     <script src="script.js"></script>
 </body>
